@@ -3,6 +3,7 @@ using Sandbox.ModAPI;
 using Sandbox.ModAPI.Weapons;
 using VRage;
 using VRage.Game.ModAPI;
+using VRage.Utils;
 using VRageMath;
 using CollisionLayers = Sandbox.Engine.Physics.MyPhysics.CollisionLayers;
 
@@ -55,11 +56,13 @@ namespace Lima.OverTheShoulder
 
       CheckCameraInputKey(true);
 
-      if (!MyAPIGateway.Gui.IsCursorVisible && !Config.Hold && MyAPIGateway.Input.IsNewRightMouseReleased() && !(player.Character.EquippedTool is IMyHandDrill))
+      var released2ndAction = MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("ACTIONS"), MyControlsSpace.SECONDARY_TOOL_ACTION, VRage.Input.MyControlStateType.NEW_RELEASED);
+      if (!MyAPIGateway.Gui.IsCursorVisible && !Config.Hold && released2ndAction && !(player.Character.EquippedTool is IMyHandDrill))
         _isZoomToggled = !_isZoomToggled;
 
       var zoom = false;
-      if (!MyAPIGateway.Gui.IsCursorVisible && ((!Config.Hold && _isZoomToggled) || MyAPIGateway.Input.IsRightMousePressed()))
+      var pressed2ndAction = MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("ACTIONS"), MyControlsSpace.SECONDARY_TOOL_ACTION, VRage.Input.MyControlStateType.PRESSED);
+      if (!MyAPIGateway.Gui.IsCursorVisible && ((!Config.Hold && _isZoomToggled) || pressed2ndAction))
         zoom = true;
 
       var charHeadMatrix = player.Character.GetHeadMatrix(false);
@@ -110,7 +113,7 @@ namespace Lima.OverTheShoulder
       if (MyAPIGateway.Gui.IsCursorVisible)
         return;
 
-      if (MyAPIGateway.Input.IsNewGameControlPressed(MyControlsSpace.CAMERA_MODE))
+      if (MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("CHARACTER"), MyControlsSpace.CAMERA_MODE, VRage.Input.MyControlStateType.NEW_PRESSED))
       {
         var isFirstPerson = MyAPIGateway.Session?.CameraController?.IsInFirstPersonView ?? false;
         if (isSpectator) MyAPIGateway.Session.SetCameraController(VRage.Game.MyCameraControllerEnum.Entity);
