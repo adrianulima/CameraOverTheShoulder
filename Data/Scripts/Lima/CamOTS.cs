@@ -55,11 +55,11 @@ namespace Lima.OverTheShoulder
 
       CheckCameraInputKey(true);
 
-      if (!Config.Hold && MyAPIGateway.Input.IsNewRightMouseReleased() && !(player.Character.EquippedTool is IMyHandDrill))
+      if (!MyAPIGateway.Gui.IsCursorVisible && !Config.Hold && MyAPIGateway.Input.IsNewRightMouseReleased() && !(player.Character.EquippedTool is IMyHandDrill))
         _isZoomToggled = !_isZoomToggled;
 
       var zoom = false;
-      if ((!Config.Hold && _isZoomToggled) || MyAPIGateway.Input.IsRightMousePressed())
+      if (!MyAPIGateway.Gui.IsCursorVisible && ((!Config.Hold && _isZoomToggled) || MyAPIGateway.Input.IsRightMousePressed()))
         zoom = true;
 
       var charHeadMatrix = player.Character.GetHeadMatrix(false);
@@ -107,6 +107,9 @@ namespace Lima.OverTheShoulder
 
     private void CheckCameraInputKey(bool isSpectator)
     {
+      if (MyAPIGateway.Gui.IsCursorVisible)
+        return;
+
       if (MyAPIGateway.Input.IsNewGameControlPressed(MyControlsSpace.CAMERA_MODE))
       {
         var isFirstPerson = MyAPIGateway.Session?.CameraController?.IsInFirstPersonView ?? false;
