@@ -17,9 +17,7 @@ namespace Lima.OverTheShoulder
       _cam = new CamOTS();
       var current = _fileHandler.Load();
       if (current != null)
-      {
         _cam.Config = current;
-      }
 
       MyAPIGateway.Utilities.MessageEntered += MessageHandler;
     }
@@ -30,6 +28,7 @@ namespace Lima.OverTheShoulder
         return;
 
       MyAPIGateway.Utilities.MessageEntered -= MessageHandler;
+      _cam = null;
     }
 
     private void MessageHandler(string message, ref bool sendToOthers)
