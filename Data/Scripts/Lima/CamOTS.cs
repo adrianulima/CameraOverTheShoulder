@@ -25,6 +25,7 @@ namespace Lima.OverTheShoulder
     private bool _smooth = false;
     private bool _isZoomToggled = false;
     private bool _isWorking = false;
+    private bool _isFirstPerson = false;
 
     public CamOTSConfig Config = new CamOTSConfig();
 
@@ -43,7 +44,8 @@ namespace Lima.OverTheShoulder
 
       var isOnFoot = player.Controller?.ControlledEntity is IMyCharacter;
       var spectatorCamera = MyAPIGateway.Session.CameraController as MySpectator;
-      CheckCameraInputKey(spectatorCamera != null, isOnFoot);
+      CheckCameraInputKey(spectatorCamera != null, isOnFoot, _isFirstPerson);
+      _isFirstPerson = MyAPIGateway.Session.CameraController?.IsInFirstPersonView ?? false;
       if (spectatorCamera == null)
         return;
 
@@ -62,14 +64,18 @@ namespace Lima.OverTheShoulder
       if (!MyAPIGateway.Gui.IsCursorVisible && ((!Config.Hold && _isZoomToggled) || pressed2ndAction))
         zoom = true;
 
+      var isTool = player.Character.EquippedTool == null || player.Character.EquippedTool is IMyHandDrill || player.Character.EquippedTool is IMyWelder || player.Character.EquippedTool is IMyAngleGrinder;
+
       var charHeadMatrix = player.Character.GetHeadMatrix(false);
       var charHeadPos = charHeadMatrix.Translation;
-      var offset = charHeadMatrix.Down * 0.2 + charHeadMatrix.Right * 0.2;
+      var offset = isTool ? Vector3D.Zero : charHeadMatrix.Down * 0.2 + charHeadMatrix.Right * 0.2;
       var charShoulderPos = charHeadPos + offset;
 
       IHitInfo hit;
       if (MyAPIGateway.Physics.CastRay(charShoulderPos, charShoulderPos + charHeadMatrix.Forward * 10 + offset, out hit, CollisionLayers.CollisionLayerWithoutCharacter))
+      {
         _target = hit.Position;
+      }
       else
         _target = charShoulderPos + charHeadMatrix.Forward * 10;
 
@@ -105,16 +111,16 @@ namespace Lima.OverTheShoulder
       _isWorking = true;
     }
 
-    private void CheckCameraInputKey(bool isSpectator, bool onFoot)
+    private void CheckCameraInputKey(bool isSpectator, bool onFoot, bool isFirstPerson)
     {
       if (MyAPIGateway.Gui.IsCursorVisible)
         return;
-
       if (MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("CHARACTER"), MyControlsSpace.CAMERA_MODE, VRage.Input.MyControlStateType.NEW_PRESSED))
       {
-        var isFirstPerson = MyAPIGateway.Session?.CameraController?.IsInFirstPersonView ?? false;
         if (isSpectator)
+        {
           MyAPIGateway.Session.SetCameraController(VRage.Game.MyCameraControllerEnum.Entity);
+        }
         else if (isFirstPerson && onFoot)
         {
           MyAPIGateway.Session.SetCameraController(VRage.Game.MyCameraControllerEnum.SpectatorFixed);
