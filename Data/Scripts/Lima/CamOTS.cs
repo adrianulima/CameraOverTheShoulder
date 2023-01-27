@@ -30,16 +30,6 @@ namespace Lima.OverTheShoulder
 
     public void Update()
     {
-      var spectatorCamera = MyAPIGateway.Session.CameraController as MySpectator;
-      if (spectatorCamera == null)
-      {
-        CheckCameraInputKey(false);
-        return;
-      }
-
-      if (spectatorCamera.SpectatorCameraMovement != MySpectatorCameraMovementEnum.None)
-        return;
-
       if (_isWorking && !Config.Enabled)
       {
         MyAPIGateway.Session.SetCameraController(VRage.Game.MyCameraControllerEnum.Entity);
@@ -51,10 +41,17 @@ namespace Lima.OverTheShoulder
       if (player == null)
         return;
 
-      if (!(player.Controller?.ControlledEntity is IMyCharacter))
+      var isOnFoot = player.Controller?.ControlledEntity is IMyCharacter;
+      var spectatorCamera = MyAPIGateway.Session.CameraController as MySpectator;
+      CheckCameraInputKey(spectatorCamera != null, isOnFoot);
+      if (spectatorCamera == null)
         return;
 
-      CheckCameraInputKey(true);
+      if (spectatorCamera.SpectatorCameraMovement != MySpectatorCameraMovementEnum.None)
+        return;
+
+      if (!(isOnFoot))
+        return;
 
       var released2ndAction = MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("ACTIONS"), MyControlsSpace.SECONDARY_TOOL_ACTION, VRage.Input.MyControlStateType.NEW_RELEASED);
       if (!MyAPIGateway.Gui.IsCursorVisible && !Config.Hold && released2ndAction && !(player.Character.EquippedTool is IMyHandDrill))
@@ -108,7 +105,7 @@ namespace Lima.OverTheShoulder
       _isWorking = true;
     }
 
-    private void CheckCameraInputKey(bool isSpectator)
+    private void CheckCameraInputKey(bool isSpectator, bool onFoot)
     {
       if (MyAPIGateway.Gui.IsCursorVisible)
         return;
@@ -116,8 +113,9 @@ namespace Lima.OverTheShoulder
       if (MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("CHARACTER"), MyControlsSpace.CAMERA_MODE, VRage.Input.MyControlStateType.NEW_PRESSED))
       {
         var isFirstPerson = MyAPIGateway.Session?.CameraController?.IsInFirstPersonView ?? false;
-        if (isSpectator) MyAPIGateway.Session.SetCameraController(VRage.Game.MyCameraControllerEnum.Entity);
-        else if (isFirstPerson)
+        if (isSpectator)
+          MyAPIGateway.Session.SetCameraController(VRage.Game.MyCameraControllerEnum.Entity);
+        else if (isFirstPerson && onFoot)
         {
           MyAPIGateway.Session.SetCameraController(VRage.Game.MyCameraControllerEnum.SpectatorFixed);
           _smooth = false;
