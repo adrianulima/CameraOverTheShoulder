@@ -14,6 +14,7 @@ namespace Lima.OverTheShoulder
     public bool Hold = true;
     public bool Collision = true;
     public bool Enabled = true;
+    public bool Zoom = true;
 
     public CamOTSConfig() { }
   }
@@ -55,20 +56,23 @@ namespace Lima.OverTheShoulder
       if (!(isOnFoot))
         return;
 
+      var isPlacer = player.Character.EquippedTool is IMyBlockPlacerBase;
+
       var released2ndAction = MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("ACTIONS"), MyControlsSpace.SECONDARY_TOOL_ACTION, VRage.Input.MyControlStateType.NEW_RELEASED);
-      if (!MyAPIGateway.Gui.IsCursorVisible && !Config.Hold && released2ndAction && !(player.Character.EquippedTool is IMyHandDrill))
+      if (!MyAPIGateway.Gui.IsCursorVisible && !Config.Hold && released2ndAction && !(player.Character.EquippedTool is IMyHandDrill) && !isPlacer)
         _isZoomToggled = !_isZoomToggled;
 
       var zoom = false;
       var pressed2ndAction = MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("ACTIONS"), MyControlsSpace.SECONDARY_TOOL_ACTION, VRage.Input.MyControlStateType.PRESSED);
-      if (!MyAPIGateway.Gui.IsCursorVisible && ((!Config.Hold && _isZoomToggled) || pressed2ndAction))
+      if (!MyAPIGateway.Gui.IsCursorVisible && !isPlacer && ((!Config.Hold && _isZoomToggled) || pressed2ndAction))
         zoom = true;
 
-      var isTool = player.Character.EquippedTool == null || player.Character.EquippedTool is IMyHandDrill || player.Character.EquippedTool is IMyWelder || player.Character.EquippedTool is IMyAngleGrinder;
+      var isHand = player.Character.EquippedTool == null;
+      var isTool = player.Character.EquippedTool is IMyHandDrill || player.Character.EquippedTool is IMyWelder || player.Character.EquippedTool is IMyAngleGrinder;
 
       var charHeadMatrix = player.Character.GetHeadMatrix(false);
       var charHeadPos = charHeadMatrix.Translation;
-      var offset = isTool ? Vector3D.Zero : charHeadMatrix.Down * 0.2 + charHeadMatrix.Right * 0.2;
+      var offset = (isTool || isHand || isPlacer) ? Vector3D.Zero : charHeadMatrix.Down * 0.2 + charHeadMatrix.Right * 0.2;
       var charShoulderPos = charHeadPos + offset;
 
       IHitInfo hit;
@@ -80,7 +84,7 @@ namespace Lima.OverTheShoulder
         _target = charShoulderPos + charHeadMatrix.Forward * 10;
 
       var newZoom = zoom ? charHeadMatrix.Forward * 1.1 + charHeadMatrix.Left * 0.15 : Vector3D.Zero;
-      _zoom = Vector3D.Lerp(_zoom, newZoom, 0.15);
+      _zoom = Config.Zoom ? Vector3D.Lerp(_zoom, newZoom, 0.15) : Vector3D.Zero;
 
       var desiredPos = charHeadPos + charHeadMatrix.Backward * 2 + charHeadMatrix.Right * 0.6 + _zoom;
       Vector3D targetToCam = Vector3D.Normalize(_target - desiredPos);
