@@ -1,11 +1,9 @@
-using System;
 using Sandbox.Game;
-using Sandbox.ModAPI;
 using Sandbox.ModAPI.Weapons;
-using VRage;
+using Sandbox.ModAPI;
 using VRage.Game.ModAPI;
-using VRage.Scripting;
 using VRage.Utils;
+using VRage;
 using VRageMath;
 using CollisionLayers = Sandbox.Engine.Physics.MyPhysics.CollisionLayers;
 
