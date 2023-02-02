@@ -1,8 +1,10 @@
+using System;
 using Sandbox.Game;
 using Sandbox.ModAPI;
 using Sandbox.ModAPI.Weapons;
 using VRage;
 using VRage.Game.ModAPI;
+using VRage.Scripting;
 using VRage.Utils;
 using VRageMath;
 using CollisionLayers = Sandbox.Engine.Physics.MyPhysics.CollisionLayers;
@@ -15,6 +17,8 @@ namespace Lima.OverTheShoulder
     public bool Collision = true;
     public bool Enabled = true;
     public bool Zoom = true;
+    public bool KeyBind = true;
+    public bool Left = false;
 
     public CamOTSConfig() { }
   }
@@ -27,6 +31,9 @@ namespace Lima.OverTheShoulder
     private bool _isZoomToggled = false;
     private bool _isWorking = false;
     private bool _isFirstPerson = false;
+
+    private float _forwardDist = 10;
+    private float _distDelay = 0;
 
     public CamOTSConfig Config = new CamOTSConfig();
 
@@ -77,16 +84,19 @@ namespace Lima.OverTheShoulder
 
       IHitInfo hit;
       if (MyAPIGateway.Physics.CastRay(charShoulderPos, charShoulderPos + charHeadMatrix.Forward * 10 + offset, out hit, CollisionLayers.CollisionLayerWithoutCharacter))
-      {
-        _target = hit.Position;
-      }
+        _forwardDist = MathHelper.Lerp(_forwardDist, 10 * hit.Fraction, 0.075f);
       else
-        _target = charShoulderPos + charHeadMatrix.Forward * 10;
+        _forwardDist = MathHelper.Lerp(_forwardDist, 10, 0.075f);
 
-      var newZoom = zoom ? charHeadMatrix.Forward * 1.1 + charHeadMatrix.Left * 0.15 : Vector3D.Zero;
+      _target = charShoulderPos + charHeadMatrix.Forward * _forwardDist;
+
+      var side = Config.Left ? charHeadMatrix.Left : charHeadMatrix.Right;
+      var oppSide = Config.Left ? charHeadMatrix.Right : charHeadMatrix.Left;
+
+      var newZoom = zoom ? charHeadMatrix.Forward * 1.1 + oppSide * 0.15 : Vector3D.Zero;
       _zoom = Config.Zoom ? Vector3D.Lerp(_zoom, newZoom, 0.15) : Vector3D.Zero;
 
-      var desiredPos = charHeadPos + charHeadMatrix.Backward * 2 + charHeadMatrix.Right * 0.6 + _zoom;
+      var desiredPos = charHeadPos + charHeadMatrix.Backward * 2 + side * 0.6 + _zoom;
       Vector3D targetToCam = Vector3D.Normalize(_target - desiredPos);
 
       var distanceDesiredToHead = Vector3D.Distance(desiredPos, charHeadPos);
@@ -97,16 +107,22 @@ namespace Lima.OverTheShoulder
         IHitInfo hitCam;
         if (MyAPIGateway.Physics.CastRay(desiredPos + targetToCam * distanceDesiredToHead, desiredPos - targetToCam * 1, out hitCam, CollisionLayers.CollisionLayerWithoutCharacter))
           newCamPos = hitCam.Position + targetToCam * 0.1;
-        if (MyAPIGateway.Physics.CastRay(newCamPos + charHeadMatrix.Left * 1, newCamPos + charHeadMatrix.Right * 1, out hitCam, CollisionLayers.CollisionLayerWithoutCharacter))
-          newCamPos = newCamPos + targetToCam * 0.1 - charHeadMatrix.Right * (1 - hitCam.Fraction);
+        if (MyAPIGateway.Physics.CastRay(newCamPos + oppSide, newCamPos + side, out hitCam, CollisionLayers.CollisionLayerWithoutCharacter))
+          newCamPos = newCamPos + targetToCam * 0.1 - side * (1 - hitCam.Fraction);
 
         var distance = Vector3D.Distance(newCamPos, charHeadPos);
         if (distance > distanceDesiredToHead)
           newCamPos = desiredPos;
 
-        if (distance < 0.8f)
+        if (distance < 0.7f || _distDelay > 0.1f)
+        {
           newCamPos = charShoulderPos + charHeadMatrix.Up * 0.2;
+          if (distance < 1f)
+            _distDelay = 2;
+        }
       }
+      if (_distDelay > 0.1f)
+        _distDelay = MathHelper.Lerp(_distDelay, 0, 0.05f);
 
       spectatorCamera.Position = _smooth ? newCamPos : Vector3D.Lerp(spectatorCamera.Position, newCamPos, 0.35);
       spectatorCamera.SetTarget(_target, charHeadMatrix.Up);
@@ -117,8 +133,9 @@ namespace Lima.OverTheShoulder
 
     private void CheckCameraInputKey(bool isSpectator, bool onFoot, bool isFirstPerson)
     {
-      if (MyAPIGateway.Gui.IsCursorVisible || MyAPIGateway.Gui.ChatEntryVisible)
+      if (!Config.KeyBind || MyAPIGateway.Gui.IsCursorVisible || MyAPIGateway.Gui.ChatEntryVisible)
         return;
+
       if (MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("CHARACTER"), MyControlsSpace.CAMERA_MODE, VRage.Input.MyControlStateType.NEW_PRESSED))
       {
         if (isSpectator)

@@ -44,8 +44,12 @@ namespace Lima.OverTheShoulder
           _cam.Config.Collision = (args[2] != "false");
         else if (args[1] == "enabled" || args[1] == "enable")
           _cam.Config.Enabled = (args[2] != "false");
-        else if (args[1] == "zoom" || args[1] == "enable")
+        else if (args[1] == "zoom")
           _cam.Config.Zoom = (args[2] != "false");
+        else if (args[1] == "left")
+          _cam.Config.Left = (args[2] != "false");
+        else if (args[1] == "keybind")
+          _cam.Config.KeyBind = (args[2] != "false");
 
         _fileHandler.Save(_cam.Config);
       }
