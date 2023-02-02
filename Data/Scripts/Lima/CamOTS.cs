@@ -31,6 +31,7 @@ namespace Lima.OverTheShoulder
     private bool _isFirstPerson = false;
 
     private float _forwardDist = 10;
+    private float _sideDist = 0;
     private float _distDelay = 0;
 
     public CamOTSConfig Config = new CamOTSConfig();
@@ -89,9 +90,7 @@ namespace Lima.OverTheShoulder
       _target = charShoulderPos + charHeadMatrix.Forward * _forwardDist;
 
       var side = Config.Left ? charHeadMatrix.Left : charHeadMatrix.Right;
-      var oppSide = Config.Left ? charHeadMatrix.Right : charHeadMatrix.Left;
-
-      var newZoom = zoom ? charHeadMatrix.Forward * 1.1 + oppSide * 0.15 : Vector3D.Zero;
+      var newZoom = zoom ? charHeadMatrix.Forward * 1.1 - side * 0.15 : Vector3D.Zero;
       _zoom = Config.Zoom ? Vector3D.Lerp(_zoom, newZoom, 0.15) : Vector3D.Zero;
 
       var desiredPos = charHeadPos + charHeadMatrix.Backward * 2 + side * 0.6 + _zoom;
@@ -102,17 +101,21 @@ namespace Lima.OverTheShoulder
 
       if (Config.Collision || (MyAPIGateway.Multiplayer.MultiplayerActive && !MyAPIGateway.Multiplayer.IsServer && !MyAPIGateway.Session.IsUserAdmin(player.SteamUserId)))
       {
+        float newSideDist = 0;
         IHitInfo hitCam;
         if (MyAPIGateway.Physics.CastRay(desiredPos + targetToCam * distanceDesiredToHead, desiredPos - targetToCam * 1, out hitCam, CollisionLayers.CollisionLayerWithoutCharacter))
           newCamPos = hitCam.Position + targetToCam * 0.1;
-        if (MyAPIGateway.Physics.CastRay(newCamPos + oppSide, newCamPos + side, out hitCam, CollisionLayers.CollisionLayerWithoutCharacter))
-          newCamPos = newCamPos + targetToCam * 0.1 - side * (1 - hitCam.Fraction);
+        if (MyAPIGateway.Physics.CastRay(newCamPos - side, newCamPos + side, out hitCam, CollisionLayers.CollisionLayerWithoutCharacter))
+          newSideDist = (1 - hitCam.Fraction);
+
+        _sideDist = MathHelper.Lerp(_sideDist, newSideDist, 0.15f);
+        newCamPos = newCamPos + -side * _sideDist;
 
         var distance = Vector3D.Distance(newCamPos, charHeadPos);
         if (distance > distanceDesiredToHead)
           newCamPos = desiredPos;
 
-        if (distance < 0.7f || _distDelay > 0.1f)
+        if (distance < 0.6f || _distDelay > 0.1f)
         {
           newCamPos = charShoulderPos + charHeadMatrix.Up * 0.2;
           if (distance < 1f)
