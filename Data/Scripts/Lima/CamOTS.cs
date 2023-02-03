@@ -134,7 +134,7 @@ namespace Lima.OverTheShoulder
 
     private void CheckCameraInputKey(bool isSpectator, bool onFoot, bool isFirstPerson)
     {
-      if (!Config.KeyBind || MyAPIGateway.Gui.IsCursorVisible || MyAPIGateway.Gui.ChatEntryVisible)
+      if ((!Config.KeyBind && !MyAPIGateway.Input.IsAnyAltKeyPressed()) || MyAPIGateway.Gui.IsCursorVisible || MyAPIGateway.Gui.ChatEntryVisible)
         return;
 
       if (MyAPIGateway.Input.IsControl(MyStringId.GetOrCompute("CHARACTER"), MyControlsSpace.CAMERA_MODE, VRage.Input.MyControlStateType.NEW_PRESSED))
